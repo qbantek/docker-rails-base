@@ -1,0 +1,37 @@
+source 'https://rubygems.org'
+git_source(:github) { |repo| "https://github.com/#{repo}.git" }
+
+ruby '3.1.2'
+
+# Full-stack web application framework. (https://rubyonrails.org)
+gem 'rails', '~> 7.0.3.1'
+#
+# Pg is the Ruby interface to the PostgreSQL RDBMS (https://github.com/ged/ruby-pg)
+gem 'pg', '~> 1.1'
+
+# Puma is a simple, fast, threaded, and highly parallel HTTP 1.1 server for Ruby/Rack applications (https://puma.io)
+gem 'puma', '~> 5.0'
+
+# Boot large ruby/rails apps faster (https://github.com/Shopify/bootsnap)
+gem 'bootsnap', require: false
+
+# Reports exceptions to Rollbar (https://rollbar.com)
+gem 'rollbar'
+
+# Tame Rails' multi-line logging into a single line per request (https://github.com/roidrage/lograge)
+gem 'lograge'
+
+# The kick-ass pagination ruby gem (https://github.com/ddnexus/pagy)
+gem 'pagy'
+
+# Middleware for enabling Cross-Origin Resource Sharing in Rack apps (https://github.com/cyu/rack-cors)
+gem 'rack-cors'
+
+# Block & throttle abusive requests (https://github.com/rack/rack-attack)
+gem 'rack-attack'
+
+# A gem adding sorting, reordering capabilities to an active_record model, allowing it to act as a list (http://github.com/brendon/acts_as_list)
+gem 'acts_as_list'
+
+# Collection of SEO helpers for Ruby on Rails. (https://github.com/kpumuk/meta-tags)
+gem 'meta-tags'
