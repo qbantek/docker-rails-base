@@ -5,66 +5,35 @@ FROM ruby:${RUBY_VERSION}-alpine
 
 # Add basic packages
 RUN apk add --no-cache \
-      build-base \
-      gcompat \
-      postgresql-dev \
-      git \
-      nodejs \
-      npm \
-      yarn \
+      postgresql-client \
       tzdata \
       file
 
+# Configure Rails
+ENV RAILS_LOG_TO_STDOUT true
+ENV RAILS_SERVE_STATIC_FILES true
+
 WORKDIR /app
 
-# Install standard Node modules
-COPY package.json yarn.lock /app/
-RUN yarn install --frozen-lockfile
+# Expose Puma port
+EXPOSE 3000
 
-# Install standard gems
-COPY Gemfile* /app/
-RUN bundle config --local frozen 1 && \
-    bundle install
+# This image is for production env only
+ENV RAILS_ENV production
 
-#### ONBUILD: Add triggers to the image, executed later while building a child image
+# Write GIT meta data from arguments to env vars
+ONBUILD ARG COMMIT_SHA
+ONBUILD ARG COMMIT_TIME
+ONBUILD ARG COMMIT_VERSION
 
-# Install Ruby gems (for production only)
-ONBUILD COPY Gemfile* /app/
-ONBUILD RUN bundle config --local without 'development test' && \
-            bundle install && \
-            # Remove unneeded gems
-            bundle clean --force && \
-            # Remove unneeded files from installed gems (cache, *.o, *.c)
-            rm -rf /usr/local/bundle/cache && \
-            find /usr/local/bundle/gems/ -name "*.c" -delete && \
-            find /usr/local/bundle/gems/ -name "*.o" -delete
+ONBUILD ENV COMMIT_SHA ${COMMIT_SHA}
+ONBUILD ENV COMMIT_TIME ${COMMIT_TIME}
+ONBUILD ENV COMMIT_VERSION ${COMMIT_VERSION}
 
-# Copy the whole application folder into the image
-ONBUILD COPY . /app
+# Add user
+ONBUILD RUN addgroup -g 1000 -S app && \
+            adduser -u 1000 -S app -G app
 
-# Precompile assets
-#
-# Notes:
-#   1. What exactly "assets:precompile" does depends on your JavaScript bundler
-#   2. For an app using encrypted credentials, Rails raises a `MissingKeyError`
-#      if the master key is missing. Because on CI there is no master key,
-#      we hide the credentials while compiling assets (by renaming them before and after)
-ONBUILD RUN mv config/credentials.yml.enc config/credentials.yml.enc.bak 2>/dev/null || true
-ONBUILD RUN mv config/credentials config/credentials.bak 2>/dev/null || true
-ONBUILD RUN yarn install
-ONBUILD RUN --mount=type=secret,id=npmrc,dst=/root/.npmrc \
-            --mount=type=secret,id=yarnrc,dst=/root/.yarnrc.yml \
-            RAILS_ENV=production \
-            SECRET_KEY_BASE=dummy \
-            RAILS_MASTER_KEY=dummy \
-            bundle exec rails assets:precompile
-ONBUILD RUN mv config/credentials.yml.enc.bak config/credentials.yml.enc 2>/dev/null || true
-ONBUILD RUN mv config/credentials.bak config/credentials 2>/dev/null || true
-
-# Remove folders not needed in resulting image
-# This includes `app/javascript` which contains the JavaScript source code.
-# Normally it is not needed in the resulting image, because it was compiled
-# to `public/`. But if the app uses importmaps, the folder is still required
-# for pinning and must not be removed.
-ONBUILD RUN rm -rf node_modules tmp/cache vendor/bundle test spec app/packs
-ONBUILD RUN if [ ! -f config/importmap.rb ]; then rm -rf app/javascript; fi
+# Copy app with gems from former build stage
+ONBUILD COPY --from=Builder --chown=app:app /usr/local/bundle/ /usr/local/bundle/
+ONBUILD COPY --from=Builder --chown=app:app /app /app
