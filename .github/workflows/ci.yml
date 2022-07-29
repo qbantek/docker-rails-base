@@ -1,0 +1,43 @@
+name: Build images
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  pull_request_target:
+    branches:
+      - main
+
+env:
+  TAG_NAME: 3.1.2-alpine
+  USER_NAME: qbantek
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build builder image
+        working-directory: ./builder
+        run: docker build -t builder .
+
+      - name: Build final image
+        working-directory: ./final
+        run: docker build -t final .
+
+      - name: Push the images to Docker Hub
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo ${{ secrets.DOCKER_TOKEN }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+
+          docker tag builder ${{ env.USER_NAME }}/rails-base-builder:latest
+          docker push ${{ env.USER_NAME }}/rails-base-builder:latest
+          docker tag builder ${{ env.USER_NAME }}/rails-base-builder:${{ env.TAG_NAME }}
+          docker push ${{ env.USER_NAME }}/rails-base-builder:${{ env.TAG_NAME }}
+
+          docker tag final ${{ env.USER_NAME }}/rails-base-final:latest
+          docker push ${{ env.USER_NAME }}/rails-base-final:latest
+          docker tag final ${{ env.USER_NAME }}/rails-base-final:${{ env.TAG_NAME }}
+          docker push ${{ env.USER_NAME }}/rails-base-final:${{ env.TAG_NAME }}

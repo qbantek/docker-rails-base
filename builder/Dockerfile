@@ -1,8 +1,7 @@
 # syntax = docker/dockerfile:1.0-experimental
 ARG RUBY_VERSION="3.1.2"
-ARG ALPINE_VERSION="3.15"
 
-FROM ruby:${RUBY_VERSION}-alpine${ALPINE_VERSION}
+FROM ruby:${RUBY_VERSION}-alpine
 
 # Add basic packages
 RUN apk add --no-cache \
